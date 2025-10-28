@@ -49,15 +49,17 @@ async def get_albums(
     artist: str | None = None,
     name: str | None = None,
     release_year: int | None = None,
-    config: bool = False,
+    no_spoilers: bool = False,
 ):
     config = session.query(Config).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Конфиг не найден.")
     db_albums = session.query(Album).where(
         (Album.artist == artist) if artist is not None else true(),
         (Album.name == name) if name is not None else true(),
         ((Album.release_year == release_year) if release_year is not None else true()),
     )
-    if config:
+    if no_spoilers:
         db_albums = (
             db_albums.where(
                 (Album.round_number < config.current_round),
@@ -82,6 +84,8 @@ async def create_album(
     session: Annotated[Session, Depends(get_session)],
 ):
     config = session.query(Config).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Конфиг не найден.")
     if not config.submissions_open:
         raise HTTPException(status_code=500, detail="Отправка альбомов закрыта")
     requested_album = processUrl(album.source, album.url)
@@ -277,6 +281,8 @@ async def get_tracks(
     track_name: str | None = None,
 ):
     config = session.query(Config).first()
+    if not config:
+        raise HTTPException(status_code=404, detail="Конфиг не найден.")
     db_album = (
         session.query(Album)
         .where(
