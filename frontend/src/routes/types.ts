@@ -58,3 +58,19 @@ export class Ranking {
         this.placement = 1
     }
 }
+
+export class TGUser {
+    id: number;
+    username?: string;
+    photo_url?: string;
+    first_name: string;
+    last_name?: string;
+    auth_date: number;
+    hash: string;
+    constructor() {
+        this.id = 1
+        this.first_name = "Ivan"
+        this.auth_date = 1
+        this.hash = ""
+    }
+};

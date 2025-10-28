@@ -1,7 +1,7 @@
 <script lang="ts">
 	import Sortable from 'sortablejs';
 	import { onMount } from 'svelte';
-	import type { Track } from '../schemas';
+	import type { Track } from '../types';
 
 	const useSortable = (getter: () => HTMLElement | null, options?: Sortable.Options) => {
 		$effect(() => {
@@ -24,6 +24,8 @@
 		});
 
 		useSortable(() => sortable, {
+			animation: 100,
+			chosenClass: 'sortable-ghost',
 			onEnd(evt) {
 				let ids = [];
 				const children = evt.target.children;
@@ -41,23 +43,21 @@
 </script>
 
 <input class="invisible hidden" bind:value {...prop} />
-{#await data}
-	<div></div>
-{:then tracks}
+{#await data then tracks}
 	<div class="pb-2 pt-2">
 		<div class="bg-background dark:border-input select-none overflow-hidden rounded-lg border">
 			<div bind:this={sortable}>
 				{#each tracks as track, i}
 					<div
 						data-id={i + 1}
-						class="bg-background hover:bg-accent dark:bg-input/30 dark:border-input dark:hover:bg-input/50 flex h-12 cursor-grab [&:not(:last-child)]:border-b"
+						class="bg-background hover:bg-accent dark:bg-input/30 dark:border-input dark:hover:bg-input/50 flex min-h-12 cursor-grab items-center [&:not(:last-child)]:border-b"
 					>
 						<div
-							class="hover:text-accent-foreground dark:border-input flex h-12 w-12 items-center justify-center border-r text-xl"
+							class="hover:text-accent-foreground dark:border-input flex min-h-12 min-w-12 select-none items-center justify-center self-stretch border-r text-xl"
 						>
 							{i + 1}
 						</div>
-						<div class="hover:text-accent-foreground flex items-center pl-4">
+						<div class="hover:text-accent-foreground flex h-full select-none pl-4">
 							{track.track_name}
 						</div>
 					</div>

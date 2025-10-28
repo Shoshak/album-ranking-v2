@@ -12,6 +12,24 @@ class Album(BaseModel):
     username: str = Field(examples=["Joosenitsa"])
 
 
+class Session(BaseModel):
+    id: int
+    first_name: str
+    username: str
+    photo_url: str
+    auth_date: int
+    hash: str
+
+class SessionPatch(BaseModel):
+    id: str
+    auth_date: int
+
+class User(BaseModel):
+    id: int
+    username: str
+    admin_rights: bool = Field(default=False)
+
+
 class Ranking(BaseModel):
     username: str = Field(examples=["Joosenitsa"])
     placements: list[int] = Field(

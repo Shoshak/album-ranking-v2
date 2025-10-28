@@ -1,8 +1,5 @@
-import type { PageLoad } from './$types';
-import { Track } from './schemas'
-import { superValidate } from 'sveltekit-superforms';
-import { rankingSchema } from './schemas';
-import { zod4 } from 'sveltekit-superforms/adapters';
+import type { PageLoad } from '../../$types';
+import { Track } from '../../types'
 
 export const load: PageLoad = async ({ fetch }) => {
     async function getTracks(): Promise<Track[] | string> {
@@ -14,9 +11,7 @@ export const load: PageLoad = async ({ fetch }) => {
             return "Что-то пошло не так.";
         }
     }
-    const rankingForm = await superValidate(zod4(rankingSchema))
     return {
-        rankingForm,
         tracks: getTracks(),
     };
 };

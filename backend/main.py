@@ -14,10 +14,17 @@ from .core.database import (
     Album,
     Track,
     Ranking,
+    User,
 )
 from .core import schemas
 from .core.api import processUrl
-from datetime import time
+from dotenv import load_dotenv
+import datetime
+import time
+import os
+import hmac
+import hashlib
+import uuid
 
 
 @asynccontextmanager
@@ -31,6 +38,7 @@ app = FastAPI(lifespan=lifespan)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "",
         "http://localhost:5173",
         "http://127.0.0.1:5173",
         "http://0.0.0.0:5173",
@@ -42,6 +50,110 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+load_dotenv()
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+
+
+@app.get("/users/")
+async def get_users(telegram_id: int = None, session: Session = Depends(get_session)):
+    db_users = (
+        session.query(User)
+        .where((User.id == id) if telegram_id is not None else true())
+        .all()
+    )
+    if len(db_users) == 0:
+        raise HTTPException(status_code=404, detail="Пользователи не найдены.")
+    return db_users
+
+
+@app.post("/users/")
+async def create_user(user: schemas.User, session: Session = Depends(get_session)):
+    db_user = User(
+        id=user.id,
+        username=user.username,
+        admin_rights=user.admin_rights,
+    )
+    if session.query(User).where(User.id == user.id).first() is not None:
+        raise HTTPException(status_code=500, detail="Пользователь уже существует.")
+    session.add(db_user)
+    session.commit()
+    session.refresh(db_user)
+    return db_user
+
+
+@app.get("/sessions/")
+async def get_sessions(telegram_id: str, session: Session = Depends(get_session)):
+    db_session = (
+        session.query(Session).where(Session.telegram_id == telegram_id).first()
+    )
+    if db_session is None:
+        raise HTTPException(status_code=404, detail="Сессия не найдена.")
+    return db_session
+
+
+@app.post("/sessions/")
+async def create_session(
+    data: schemas.Session, session: Session = Depends(get_session)
+):
+    check_hash = data.hash
+    data_check_arr = []
+    for key, value in data:
+        if key != "hash":
+            data_check_arr.append(f"{key}={value}")
+    data_check_arr.sort()
+    data_check_string = "\n".join(data_check_arr)
+    secret_key = hashlib.sha256(TELEGRAM_TOKEN.encode()).digest()
+    hash_value = hmac.new(
+        secret_key, data_check_string.encode(), hashlib.sha256
+    ).hexdigest()
+
+    if hash_value != check_hash:
+        raise HTTPException(status_code=403, detail="Данные не из Telegram.")
+
+    if (time.time() - data.auth_date) > 86400:
+        raise HTTPException(status_code=408, detail="Данные устарели.")
+
+    if session.query(Session).where(Session.telegram_id == data.id).first() is not None:
+        raise HTTPException(status_code=500, detail="Сессия уже существует.")
+    db_session = Session(
+        telegram_id=data.id,
+        expires_at=(
+            datetime.datetime.fromtimestamp(data.auth_date)
+            + datetime.timedelta(days=14)
+        ),
+    )
+    session.add(db_session)
+    session.commit()
+    session.refresh(db_session)
+    return db_session
+
+
+@app.patch("/sessions/")
+async def change_session(
+    data: schemas.SessionPatch, session: Session = Depends(get_session)
+):
+    db_session = (
+        session.query(Session)
+        .where(
+            Session.id == data.id,
+        )
+        .first()
+    )
+    session_update = (
+        update(Session)
+        .where(
+            Session.id == data.id,
+        )
+        .values(
+            expires_at=datetime.datetime.fromtimestamp(data.auth_date)
+            + datetime.timedelta(days=14)
+        )
+    )
+    session.execute(session_update)
+    session.commit()
+    session.refresh(db_session)
+    return db_session
+
 
 @app.get("/albums/")
 async def get_albums(
@@ -51,9 +163,13 @@ async def get_albums(
     release_year: int | None = None,
     no_spoilers: bool = False,
 ):
+<<<<<<< HEAD
     config = session.query(Config).first()
     if not config:
         raise HTTPException(status_code=404, detail="Конфиг не найден.")
+=======
+    db_config = session.query(Config).first()
+>>>>>>> ca9f3ffdc88753ec1a27e30fd7c1cbb7aa39c7f4
     db_albums = session.query(Album).where(
         (Album.artist == artist) if artist is not None else true(),
         (Album.name == name) if name is not None else true(),
@@ -62,12 +178,12 @@ async def get_albums(
     if no_spoilers:
         db_albums = (
             db_albums.where(
-                (Album.round_number < config.current_round),
+                (Album.round_number < db_config.current_round),
             ).all()
             + db_albums.where(
                 and_(
-                    (Album.order_number < config.current_order_number),
-                    (Album.round_number == config.current_round),
+                    (Album.order_number < db_config.current_order_number),
+                    (Album.round_number == db_config.current_round),
                 )
             ).all()
         )
@@ -241,7 +357,7 @@ async def create_ranking(
 
 
 @app.patch("/albums/{album_id}")
-async def create_ranking(
+async def change_ranking(
     album_id: int,
     ranking: schemas.Ranking,
     session: Annotated[Session, Depends(get_session)],
