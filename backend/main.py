@@ -46,8 +46,8 @@ app.add_middleware(
 @app.get("/albums/")
 async def get_albums(
     session: Annotated[Session, Depends(get_session)],
-    artist: str = None,
-    name: str = None,
+    artist: str | None = None,
+    name: str | None = None,
     release_year: int | None = None,
     config: bool = False,
 ):
@@ -274,7 +274,7 @@ async def create_ranking(
 @app.get("/tracks/")
 async def get_tracks(
     session: Annotated[Session, Depends(get_session)],
-    track_name: str = None,
+    track_name: str | None = None,
 ):
     config = session.query(Config).first()
     db_album = (
@@ -307,7 +307,7 @@ async def get_tracks(
 async def get_track_rankings(
     session: Annotated[Session, Depends(get_session)],
     track_id: int,
-    username: str = None,
+    username: str | None = None,
 ):
     db_rankings = (
         session.query(Ranking)
