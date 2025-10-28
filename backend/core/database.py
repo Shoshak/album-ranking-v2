@@ -1,3 +1,4 @@
+from datetime import datetime, time
 from sqlalchemy import (
     Column,
     String,
@@ -9,87 +10,98 @@ from sqlalchemy import (
     DateTime,
 )
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, declarative_base, scoped_session, relationship
-from datetime import time
+from sqlalchemy.orm import (
+    DeclarativeBase,
+    Mapped,
+    mapped_column,
+    sessionmaker,
+    declarative_base,
+    scoped_session,
+    relationship,
+)
 import os
 import uuid
 
-Base = declarative_base()
+
+class Base(DeclarativeBase):
+    pass
 
 
 class TelegramSession(Base):
     __tablename__ = "sessions"
 
-    id = Column(
+    id: Mapped[str] = mapped_column(
         String(32), primary_key=True, default=uuid.uuid4
     )  # UUID stored as string
-    telegram_id = Column(Integer, nullable=False, index=True)
-    username = Column(String, nullable=True, index=True)
-    expires_at = Column(DateTime, nullable=False, index=True)
+    telegram_id: Mapped[int] = mapped_column(index=True)
+    username: Mapped[str] = mapped_column(index=True)
+    expires_at: Mapped[datetime] = mapped_column(index=True)
 
 
 class Config(Base):
     __tablename__ = "config"
 
-    id = Column(Integer, primary_key=True)
-    current_round = Column(Integer, default=1)
-    current_order_number = Column(Integer, default=1)
-    max_submissions = Column(Integer, default=2)
-    submissions_open = Column(Boolean, default=False)
-    max_duration = Column(Time, default=time(hour=2))
-    max_tracks = Column(Integer, default=30)
-    min_tracks = Column(Integer, default=7)
+    id: Mapped[int] = mapped_column(primary_key=True)
+    current_round: Mapped[int] = mapped_column(default=1)
+    current_order_number: Mapped[int] = mapped_column(default=1)
+    max_submissions: Mapped[int] = mapped_column(default=2)
+    submissions_open: Mapped[bool] = mapped_column(default=False)
+    max_duration: Mapped[time] = mapped_column(default=time(hour=2))
+    max_tracks: Mapped[int] = mapped_column(default=30)
+    min_tracks: Mapped[int] = mapped_column(default=7)
 
 
 class UserAlbumSubmission(Base):
     __tablename__ = "user_album_submissions"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String, nullable=False)
-    album_id = Column(Integer, ForeignKey("albums.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column()
+    album_id: Mapped[int] = mapped_column(ForeignKey("albums.id"))
 
 
 class Album(Base):
     __tablename__ = "albums"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    artist = Column(String, nullable=False)
-    name = Column(String, nullable=False)
-    release_year = Column(Integer)
-    duration = Column(Time, nullable=False)
-    total_tracks = Column(Integer, nullable=False)
-    round_number = Column(Integer, nullable=False)
-    cover = Column(String, nullable=False)
-    order_number = Column(Integer)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    artist: Mapped[str] = mapped_column()
+    name: Mapped[str] = mapped_column()
+    release_year: Mapped[int] = mapped_column()
+    duration: Mapped[time] = mapped_column()
+    total_tracks: Mapped[int] = mapped_column()
+    round_number: Mapped[int] = mapped_column()
+    cover: Mapped[str] = mapped_column()
+    order_number: Mapped[int | None] = mapped_column()
 
     __table_args__ = (
         UniqueConstraint("round_number", "order_number", name="uix_round_order"),
     )
 
-    tracks = relationship("Track", back_populates="album", cascade="all, delete-orphan")
+    tracks: Mapped["Track"] = relationship(
+        back_populates="album", cascade="all, delete-orphan"
+    )
 
 
 class Track(Base):
     __tablename__ = "tracks"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    track_name = Column(String, nullable=False)
-    album_id = Column(Integer, ForeignKey("albums.id"), nullable=False)
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    track_name: Mapped[str] = mapped_column()
+    album_id: Mapped[int] = mapped_column(ForeignKey("albums.id"))
 
-    album = relationship("Album", back_populates="tracks")
-    rankings = relationship(
-        "Ranking", back_populates="track", cascade="all, delete-orphan"
+    album: Mapped["Album"] = relationship(back_populates="tracks")
+    rankings: Mapped["Ranking"] = relationship(
+        back_populates="track", cascade="all, delete-orphan"
     )
 
 
 class Ranking(Base):
     __tablename__ = "rankings"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    username = Column(String, nullable=False)
-    track_id = Column(Integer, ForeignKey("tracks.id"), nullable=False)
-    placement = Column(Integer, nullable=False)
-    track = relationship("Track", back_populates="rankings")
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
+    username: Mapped[str] = mapped_column()
+    track_id: Mapped[int] = mapped_column(ForeignKey("tracks.id"))
+    placement: Mapped[int] = mapped_column()
+    track: Mapped["Track"] = relationship(back_populates="rankings")
 
     __table_args__ = (UniqueConstraint("username", "track_id", name="uix_user_track"),)
 
