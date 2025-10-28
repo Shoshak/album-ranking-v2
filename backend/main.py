@@ -163,13 +163,9 @@ async def get_albums(
     release_year: int | None = None,
     no_spoilers: bool = False,
 ):
-<<<<<<< HEAD
     config = session.query(Config).first()
     if not config:
         raise HTTPException(status_code=404, detail="Конфиг не найден.")
-=======
-    db_config = session.query(Config).first()
->>>>>>> ca9f3ffdc88753ec1a27e30fd7c1cbb7aa39c7f4
     db_albums = session.query(Album).where(
         (Album.artist == artist) if artist is not None else true(),
         (Album.name == name) if name is not None else true(),
