@@ -8,7 +8,7 @@ from sqlalchemy import true, and_, or_, update, func
 from .core.database import (
     get_session,
     create_db_and_tables,
-    Session,
+    TelegramSession,
     Config,
     UserAlbumSubmission,
     Album,
@@ -45,11 +45,11 @@ app.add_middleware(
 
 @app.get("/albums/")
 async def get_albums(
+    session: Annotated[Session, Depends(get_session)],
     artist: str = None,
     name: str = None,
     release_year: int | None = None,
     config: bool = False,
-    session: Session = Depends(get_session),
 ):
     config = session.query(Config).first()
     db_albums = session.query(Album).where(
@@ -79,7 +79,7 @@ async def get_albums(
 @app.post("/albums/")
 async def create_album(
     album: schemas.Album,
-    session: Session = Depends(get_session),
+    session: Annotated[Session, Depends(get_session)],
 ):
     config = session.query(Config).first()
     if not config.submissions_open:
@@ -185,7 +185,7 @@ async def create_album(
 
 
 @app.get("/albums/{album_id}")
-async def get_album(album_id: int, session: Session = Depends(get_session)):
+async def get_album(album_id: int, session: Annotated[Session, Depends(get_session)]):
     db_album = session.query(Album).where(Album.id == album_id).first()
     if not db_album:
         raise HTTPException(status_code=404, detail="Альбом не найден.")
@@ -196,7 +196,7 @@ async def get_album(album_id: int, session: Session = Depends(get_session)):
 async def create_ranking(
     album_id: int,
     ranking: schemas.Ranking,
-    session: Session = Depends(get_session),
+    session: Annotated[Session, Depends(get_session)],
 ):
     db_album = session.query(Album).where(Album.id == album_id).first()
     tracks = session.query(Track).where(Track.album_id == album_id).all()
@@ -240,7 +240,7 @@ async def create_ranking(
 async def create_ranking(
     album_id: int,
     ranking: schemas.Ranking,
-    session: Session = Depends(get_session),
+    session: Annotated[Session, Depends(get_session)],
 ):
     db_album = session.query(Album).where(Album.id == album_id).first()
     tracks = session.query(Track).where(Track.album_id == album_id).all()
@@ -273,8 +273,8 @@ async def create_ranking(
 
 @app.get("/tracks/")
 async def get_tracks(
+    session: Annotated[Session, Depends(get_session)],
     track_name: str = None,
-    session: Session = Depends(get_session),
 ):
     config = session.query(Config).first()
     db_album = (
@@ -305,7 +305,9 @@ async def get_tracks(
 
 @app.get("/tracks/{track_id}")
 async def get_track_rankings(
-    track_id: int, username: str = None, session: Session = Depends(get_session)
+    session: Annotated[Session, Depends(get_session)],
+    track_id: int,
+    username: str = None,
 ):
     db_rankings = (
         session.query(Ranking)
@@ -321,7 +323,9 @@ async def get_track_rankings(
 
 
 @app.get("/rankings/{album_id}")
-async def get_album_rankings(album_id: int, session: Session = Depends(get_session)):
+async def get_album_rankings(
+    album_id: int, session: Annotated[Session, Depends(get_session)]
+):
     db_tracks = session.query(Track).where(Track.album_id == album_id).all()
     if not session.query(Ranking).where(Ranking.track_id == db_tracks[0].id).first():
         raise HTTPException(status_code=404, detail="У альбома нет ранкингов.")
@@ -346,14 +350,14 @@ async def get_album_rankings(album_id: int, session: Session = Depends(get_sessi
 
 
 @app.get("/config/")
-async def get_config(session: Session = Depends(get_session)):
+async def get_config(session: Annotated[Session, Depends(get_session)]):
     return session.query(Config).first()
 
 
 @app.patch("/config/")
 async def change_config(
     config: schemas.Config,
-    session: Session = Depends(get_session),
+    session: Annotated[Session, Depends(get_session)],
 ):
     db_config = session.query(Config).first()
     session.execute(

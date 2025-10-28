@@ -17,7 +17,7 @@ import uuid
 Base = declarative_base()
 
 
-class Session(Base):
+class TelegramSession(Base):
     __tablename__ = "sessions"
 
     id = Column(
